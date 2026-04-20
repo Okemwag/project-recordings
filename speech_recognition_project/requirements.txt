@@ -1,0 +1,34 @@
+# Kiswahili ASR System — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Audio processing
+librosa==0.10.2
+soundfile==0.12.1
+noisereduce==3.0.2
+pyaudio==0.2.14
+
+# Numerical / ML
+numpy==1.26.4
+scikit-learn==1.4.2
+joblib==1.4.2
+
+# Deep learning (ANN model)
+tensorflow==2.16.1
+
+# Data handling
+pandas==2.2.2
+
+# Visualization
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# Configuration
+pyyaml==6.0.1
+
+# Testing
+pytest==8.2.0
+hypothesis==6.100.1
+
+# Notebook
+jupyter==1.0.0
+ipykernel==6.29.4

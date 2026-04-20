@@ -1,0 +1,45 @@
+# default.yaml — Default configuration for the Kiswahili ASR system
+# Override any value by creating a custom YAML and passing --config path/to/custom.yaml
+
+data_dir: "data/raw"
+processed_dir: "data/processed"
+metadata_csv: "data/metadata.csv"
+models_dir: "models"
+
+preprocessing:
+  target_sr: 16000        # Target sample rate (Hz)
+  top_db: 20.0            # Silence threshold (dB below peak)
+  min_duration: 0.5       # Minimum audio duration after trimming (seconds)
+  max_duration: 3.0       # Maximum audio duration — longer clips are truncated
+
+features:
+  n_mfcc: 13              # Number of MFCC coefficients
+  n_fft: 512              # FFT window size (samples) — 32ms @ 16kHz
+  hop_length: 160         # Hop length (samples) — 10ms @ 16kHz
+  n_mels: 40              # Number of mel filterbanks
+  use_delta: true         # Include delta (Δ) coefficients
+  use_delta_delta: true   # Include delta-delta (ΔΔ) coefficients
+
+model:
+  type: "svm"             # "svm" or "ann"
+  random_state: 42
+
+  # SVM hyperparameters
+  svm_kernel: "rbf"
+  svm_C: 1.0
+  svm_gamma: "scale"
+
+  # ANN hyperparameters
+  ann_hidden_units: [256, 128]
+  ann_dropout_rate: 0.3
+  ann_learning_rate: 0.001
+  ann_epochs: 100
+  ann_batch_size: 32
+
+training:
+  test_size: 0.2          # Fraction of data held out for testing
+  random_state: 42        # Random seed for reproducibility
+  accents:
+    - coastal
+    - nairobi
+    - upcountry

@@ -1,0 +1,217 @@
+# =============================================================================
+# Accent-Aware Kiswahili ASR System — .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+
+# -----------------------------------------------------------------------------
+# Virtual Environments
+# -----------------------------------------------------------------------------
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# -----------------------------------------------------------------------------
+# Distribution / Packaging
+# -----------------------------------------------------------------------------
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+*.whl
+
+# -----------------------------------------------------------------------------
+# Audio Data — Raw & Processed
+# Raw audio files are large binary assets managed outside version control.
+# Use a data registry (DVC, Git LFS, or cloud storage) for audio datasets.
+# -----------------------------------------------------------------------------
+data/raw/
+data/processed/
+coastal/
+nairobi/
+upcountry/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+*.aac
+.kiro/
+
+# Keep the metadata CSV and directory structure
+!data/.gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/metadata.csv
+
+# -----------------------------------------------------------------------------
+# Trained Model Artifacts
+# Serialized models can be large; store them in a model registry or cloud.
+# -----------------------------------------------------------------------------
+models/
+*.joblib
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.keras
+*.pb
+saved_model/
+checkpoints/
+*.ckpt
+*.ckpt.*
+*.index
+*.data-*
+
+# Keep the models directory placeholder
+!models/.gitkeep
+
+# -----------------------------------------------------------------------------
+# Jupyter Notebooks — Checkpoints
+# -----------------------------------------------------------------------------
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+*.ipynb_checkpoints
+
+# -----------------------------------------------------------------------------
+# Testing & Coverage
+# -----------------------------------------------------------------------------
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+nosetests.xml
+test-results/
+*.test.log
+
+# -----------------------------------------------------------------------------
+# Type Checking & Linting
+# -----------------------------------------------------------------------------
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+
+# -----------------------------------------------------------------------------
+# IDE & Editor Files
+# -----------------------------------------------------------------------------
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains (PyCharm, IntelliJ, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Spyder
+.spyderproject.cfg
+.spyproject/
+
+# Rope
+.ropeproject/
+
+# -----------------------------------------------------------------------------
+# Operating System Files
+# -----------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# -----------------------------------------------------------------------------
+# Logs & Temporary Files
+# -----------------------------------------------------------------------------
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+logs/
+tmp/
+temp/
+
+# -----------------------------------------------------------------------------
+# Environment & Secrets
+# NEVER commit API keys, credentials, or environment-specific config.
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials/
+
+# -----------------------------------------------------------------------------
+# Documentation Build Artifacts
+# -----------------------------------------------------------------------------
+docs/_build/
+docs/api/
+site/
+.mkdocs/
+
+# -----------------------------------------------------------------------------
+# Profiling
+# -----------------------------------------------------------------------------
+*.prof
+*.lprof
+profile_output/
