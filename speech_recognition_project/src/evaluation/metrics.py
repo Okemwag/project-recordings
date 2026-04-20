@@ -55,7 +55,8 @@ class Evaluator:
         self, y_true: np.ndarray, y_pred: np.ndarray
     ) -> np.ndarray:
         """Confusion matrix with class labels."""
-        return confusion_matrix(y_true, y_pred)
+        labels = np.arange(len(self.label_encoder.classes_))
+        return confusion_matrix(y_true, y_pred, labels=labels)
 
     def word_error_rate(
         self, references: list[str], hypotheses: list[str]
@@ -148,6 +149,7 @@ class Evaluator:
             "classification_report": classification_report(
                 y_true,
                 y_pred,
+                labels=np.arange(len(self.label_encoder.classes_)),
                 target_names=self.label_encoder.classes_,
                 zero_division=0,
             ),

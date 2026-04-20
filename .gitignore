@@ -72,7 +72,7 @@ upcountry/
 # Trained Model Artifacts
 # Serialized models can be large; store them in a model registry or cloud.
 # -----------------------------------------------------------------------------
-models/
+/speech_recognition_project/models/
 *.joblib
 *.pkl
 *.pickle
