@@ -17,6 +17,7 @@ from src.features.mfcc_extraction import FeatureExtractor
 from src.preprocessing.noise_reduction import NoiseReducer
 from src.preprocessing.normalization import AudioNormalizer
 from src.preprocessing.silence_removal import InsufficientAudioError, SilenceRemover
+from src.utils.audio import load_audio
 
 logger = logging.getLogger(__name__)
 
@@ -92,15 +93,10 @@ class InferenceEngine:
         Returns:
             PredictionResult with predicted word and confidence.
         """
-        import soundfile as sf
-
         try:
-            audio, orig_sr = sf.read(path, dtype="float32")
+            audio, orig_sr = load_audio(path)
         except Exception as e:
             return PredictionResult(error=f"Failed to load audio: {e}")
-
-        if audio.ndim > 1:
-            audio = audio[:, 0]
 
         audio = self._normalizer.resample(audio, orig_sr)
         return self._run_pipeline(audio)

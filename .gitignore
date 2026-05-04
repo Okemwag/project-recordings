@@ -51,6 +51,8 @@ pip-delete-this-directory.txt
 # -----------------------------------------------------------------------------
 data/raw/
 data/processed/
+/speech_recognition_project/data/raw/*
+/speech_recognition_project/data/processed/*
 coastal/
 nairobi/
 upcountry/
@@ -67,6 +69,9 @@ upcountry/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/metadata.csv
+!/speech_recognition_project/data/raw/.gitkeep
+!/speech_recognition_project/data/processed/.gitkeep
+!/speech_recognition_project/data/metadata.csv
 
 # -----------------------------------------------------------------------------
 # Trained Model Artifacts

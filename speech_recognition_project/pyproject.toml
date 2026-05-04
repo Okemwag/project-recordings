@@ -28,6 +28,9 @@ notebook = [
     "matplotlib>=3.8.4",
     "seaborn>=0.13.2",
 ]
+ui = [
+    "streamlit>=1.36.0",
+]
 
 [dependency-groups]
 dev = [

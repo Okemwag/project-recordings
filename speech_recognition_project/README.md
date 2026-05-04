@@ -79,6 +79,60 @@ pip install -r requirements.txt
    file_path, word_label, accent_label, speaker_id, duration_sec, split
    ```
 
+### Common Voice Archives
+
+This project can extract Mozilla Common Voice archives and build `data/metadata.csv`:
+
+```bash
+python main.py dataset archives --raw-dir data/raw
+python main.py dataset extract --raw-dir data/raw
+python main.py dataset metadata --raw-dir data/raw --output data/metadata.csv
+```
+
+For Common Voice sentence-level recognition, keep the default label strategy. For a smaller vocabulary, use:
+
+```bash
+python main.py dataset metadata --label-strategy first_word --min-label-count 20 --max-labels 25
+```
+
+If extraction reports `unexpected end of data`, the archive is incomplete and must be replaced with a full download before metadata generation or training can proceed.
+
+## Streamlit UI
+
+Run the local workbench:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The UI supports archive extraction, metadata generation, SVM/ANN training, and audio-file prediction.
+
+The Demo tab shows the project flow:
+
+```text
+speaker audio -> preprocessing -> MFCC features -> word text -> accent group
+```
+
+Word recognition uses `models/svm_model.joblib`, `models/scaler.joblib`, and
+`models/label_encoder.joblib`. Accent classification uses separate artifacts:
+`models/accent_svm_model.joblib`, `models/accent_scaler.joblib`, and
+`models/accent_label_encoder.joblib`.
+
+To train the accent classifier, `data/metadata.csv` must contain examples with
+these exact labels in the `accent_label` column:
+
+```text
+coastal
+nairobi
+upcountry
+```
+
+Then run:
+
+```bash
+python main.py train --target accent --model svm --data-dir data/raw --metadata data/metadata.csv --save-dir models
+```
+
 ---
 
 ## Training

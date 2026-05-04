@@ -9,7 +9,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-import soundfile as sf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
@@ -18,6 +17,7 @@ from src.features.mfcc_extraction import FeatureExtractor
 from src.preprocessing.noise_reduction import NoiseReducer
 from src.preprocessing.normalization import AudioNormalizer
 from src.preprocessing.silence_removal import SilenceRemover
+from src.utils.audio import load_audio
 from src.utils.config import Config
 
 logger = logging.getLogger(__name__)
@@ -39,13 +39,20 @@ def train_pipeline(
     model_type: str = "svm",
     config: Config | None = None,
     save_dir: str = "models",
+    target_column: str = "word_label",
 ):
     """Train a model, save artifacts, and return the fitted model plus report."""
+    if target_column not in {"word_label", "accent_label"}:
+        raise ValueError("target_column must be 'word_label' or 'accent_label'.")
+
     config = config or Config.default()
     metadata = _load_metadata(metadata_csv)
     _warn_on_accent_imbalance(metadata["accent_label"].to_numpy())
 
     X, labels, accents, splits = _build_feature_matrix(metadata, data_dir, config)
+    if target_column == "accent_label":
+        labels = accents
+
     label_encoder = LabelEncoder()
     y = label_encoder.fit_transform(labels)
 
@@ -73,7 +80,8 @@ def train_pipeline(
     y_pred = model.predict(X_test_scaled)
     report = Evaluator(label_encoder).full_report(y_test, y_pred, test_accents)
 
-    _save_artifacts(model, scaler, label_encoder, save_dir, model_type)
+    artifact_prefix = "accent_" if target_column == "accent_label" else ""
+    _save_artifacts(model, scaler, label_encoder, save_dir, model_type, artifact_prefix)
     return model, report
 
 
@@ -122,9 +130,7 @@ def _build_feature_matrix(
     for row in metadata.itertuples(index=False):
         audio_path = _resolve_audio_path(str(row.file_path), data_dir)
         try:
-            audio, orig_sr = sf.read(audio_path, dtype="float32")
-            if audio.ndim > 1:
-                audio = audio[:, 0]
+            audio, orig_sr = load_audio(audio_path)
             audio = normalizer.resample(audio, orig_sr)
             audio = reducer.reduce(audio, sr=pre_cfg.target_sr)
             audio = trimmer.trim(audio, sr=pre_cfg.target_sr)
@@ -217,14 +223,15 @@ def _save_artifacts(
     label_encoder: LabelEncoder,
     save_dir: str,
     model_type: str,
+    artifact_prefix: str = "",
 ) -> None:
     save_path = Path(save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
 
     model_suffix = "keras" if model_type == "ann" else "joblib"
-    model.save(save_path / f"{model_type}_model.{model_suffix}")
-    joblib.dump(scaler, save_path / "scaler.joblib")
-    joblib.dump(label_encoder, save_path / "label_encoder.joblib")
+    model.save(save_path / f"{artifact_prefix}{model_type}_model.{model_suffix}")
+    joblib.dump(scaler, save_path / f"{artifact_prefix}scaler.joblib")
+    joblib.dump(label_encoder, save_path / f"{artifact_prefix}label_encoder.joblib")
 
 
 def _warn_on_accent_imbalance(accent_labels: np.ndarray) -> None:
