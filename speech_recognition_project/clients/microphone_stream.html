@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kiswahili ASR Microphone Client</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f7f7f5;
+        color: #202124;
+      }
+
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 20px;
+      }
+
+      h1 {
+        margin: 0 0 20px;
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .panel {
+        display: grid;
+        gap: 16px;
+        padding: 20px;
+        border: 1px solid #d8d8d0;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      input {
+        min-height: 40px;
+        padding: 8px 10px;
+        border: 1px solid #b9b9af;
+        border-radius: 6px;
+        font: inherit;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        min-height: 40px;
+        padding: 8px 14px;
+        border: 1px solid #2f5d62;
+        border-radius: 6px;
+        background: #2f5d62;
+        color: white;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: white;
+        color: #2f5d62;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      pre {
+        min-height: 180px;
+        margin: 0;
+        padding: 14px;
+        overflow: auto;
+        border-radius: 8px;
+        background: #151816;
+        color: #e9f1eb;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Kiswahili ASR Microphone Client</h1>
+      <section class="panel">
+        <label>
+          WebSocket server
+          <input id="server" value="ws://127.0.0.1:8001" />
+        </label>
+        <label>
+          Device ID
+          <input id="deviceId" value="device-001" />
+        </label>
+        <label>
+          Expected word
+          <input id="expectedWord" value="maji" />
+        </label>
+        <div class="actions">
+          <button id="start">Start streaming</button>
+          <button id="stop" class="secondary" disabled>Stop</button>
+        </div>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <script>
+      const TARGET_SAMPLE_RATE = 16000;
+      const logEl = document.getElementById("log");
+      const startButton = document.getElementById("start");
+      const stopButton = document.getElementById("stop");
+
+      let socket = null;
+      let audioContext = null;
+      let processor = null;
+      let mediaStream = null;
+
+      function log(message, value) {
+        const text = value === undefined ? message : `${message} ${JSON.stringify(value, null, 2)}`;
+        logEl.textContent += `${text}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function downsampleTo16k(buffer, inputSampleRate) {
+        if (inputSampleRate === TARGET_SAMPLE_RATE) return buffer;
+        const ratio = inputSampleRate / TARGET_SAMPLE_RATE;
+        const outputLength = Math.floor(buffer.length / ratio);
+        const output = new Float32Array(outputLength);
+        for (let i = 0; i < outputLength; i += 1) {
+          const start = Math.floor(i * ratio);
+          const end = Math.floor((i + 1) * ratio);
+          let sum = 0;
+          let count = 0;
+          for (let j = start; j < end && j < buffer.length; j += 1) {
+            sum += buffer[j];
+            count += 1;
+          }
+          output[i] = count ? sum / count : 0;
+        }
+        return output;
+      }
+
+      function floatToPcm16(samples) {
+        const pcm = new Int16Array(samples.length);
+        for (let i = 0; i < samples.length; i += 1) {
+          const sample = Math.max(-1, Math.min(1, samples[i]));
+          pcm[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+        }
+        return pcm.buffer;
+      }
+
+      function buildUrl() {
+        const server = document.getElementById("server").value.replace(/\/$/, "");
+        const params = new URLSearchParams({
+          device_id: document.getElementById("deviceId").value,
+          expected_word: document.getElementById("expectedWord").value,
+          vad_enabled: "true",
+          sample_rate: String(TARGET_SAMPLE_RATE),
+          vad_threshold_db: "-40",
+          vad_end_silence_ms: "700",
+        });
+        return `${server}/iot/microphone/stream?${params.toString()}`;
+      }
+
+      async function startStreaming() {
+        logEl.textContent = "";
+        startButton.disabled = true;
+        stopButton.disabled = false;
+
+        const url = buildUrl();
+        log("connecting:", url);
+        socket = new WebSocket(url);
+
+        socket.onmessage = (event) => {
+          const payload = JSON.parse(event.data);
+          log("server:", payload);
+          if (payload.event === "prediction" || payload.event === "error") {
+            stopStreaming();
+          }
+        };
+        socket.onclose = () => log("socket closed");
+        socket.onerror = () => log("socket error");
+
+        await new Promise((resolve, reject) => {
+          socket.onopen = resolve;
+          socket.onerror = reject;
+        });
+
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+
+        audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        processor = audioContext.createScriptProcessor(4096, 1, 1);
+        processor.onaudioprocess = (event) => {
+          if (!socket || socket.readyState !== WebSocket.OPEN) return;
+          const input = event.inputBuffer.getChannelData(0);
+          const downsampled = downsampleTo16k(input, audioContext.sampleRate);
+          socket.send(floatToPcm16(downsampled));
+        };
+
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+        log("streaming. Speak the expected word, then pause.");
+      }
+
+      function stopStreaming() {
+        if (processor) {
+          processor.disconnect();
+          processor = null;
+        }
+        if (audioContext) {
+          audioContext.close();
+          audioContext = null;
+        }
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          mediaStream = null;
+        }
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.close();
+        }
+        socket = null;
+        startButton.disabled = false;
+        stopButton.disabled = true;
+      }
+
+      startButton.addEventListener("click", () => {
+        startStreaming().catch((error) => {
+          log("client error:", String(error));
+          stopStreaming();
+        });
+      });
+      stopButton.addEventListener("click", stopStreaming);
+    </script>
+  </body>
+</html>

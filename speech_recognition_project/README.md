@@ -165,6 +165,97 @@ python main.py predict \
   --encoder-path models/label_encoder.joblib
 ```
 
+## IoT Microphone Endpoints
+
+Run the API so microphone-enabled IoT devices can send recordings:
+
+```bash
+uvicorn iot_api:app --host 0.0.0.0 --port 8000
+```
+
+Health check:
+
+```bash
+curl http://localhost:8000/health
+```
+
+### HTTP Upload
+
+This is a record-then-classify flow. The device records a short isolated-word
+clip, uploads the clip, and receives one prediction response:
+
+```bash
+curl -X POST http://localhost:8000/iot/microphone \
+  -F "device_id=device-001" \
+  -F "expected_word=maji" \
+  -F "include_accent=false" \
+  -F "file=@recording.wav;type=audio/wav"
+```
+
+The endpoint returns JSON with the recognized word, confidence, top predictions,
+and `prompt_match` when `expected_word` is supplied. Set `include_accent=true`
+to also run the accent classifier if accent model artifacts exist.
+
+### WebSocket Stream
+
+This is the real-time transport flow. The device opens one WebSocket connection
+and sends microphone chunks as binary messages. By default, server-side voice
+activity detection is enabled: the backend detects speech start/end, writes the
+detected utterance to a temporary WAV file, runs classification, and returns a
+prediction event automatically.
+
+```text
+ws://localhost:8000/iot/microphone/stream?device_id=device-001&expected_word=maji
+```
+
+Protocol:
+
+```text
+1. Server sends: {"event": "ready", ...}
+2. Device sends: raw 16-bit little-endian PCM audio chunks at 16 kHz, mono
+3. Server sends: {"event": "chunk_received", "bytes": ...}
+4. When speech is detected, server sends: {"event": "speech_started"}
+5. Device keeps sending chunks, including short silence after speech
+6. Server detects end-of-speech and sends: {"event": "prediction", "result": {...}}
+```
+
+Useful query parameters:
+
+```text
+vad_enabled=true
+sample_rate=16000
+vad_threshold_db=-40
+vad_end_silence_ms=700
+include_accent=false
+```
+
+Set `vad_enabled=false` to use manual finalization. In that mode, the binary
+messages must make up a valid audio file by the time the device sends
+`{"event": "stop"}`.
+
+This project is still an isolated-word recognizer, so it does not emit partial
+transcripts while the speaker is mid-word. VAD only decides when a complete word
+window is ready to classify.
+
+By default, the API loads:
+
+```text
+models/svm_model.joblib
+models/scaler.joblib
+models/label_encoder.joblib
+```
+
+Override artifact paths with:
+
+```bash
+ASR_WORD_MODEL_PATH=/path/to/svm_model.joblib
+ASR_WORD_SCALER_PATH=/path/to/scaler.joblib
+ASR_WORD_ENCODER_PATH=/path/to/label_encoder.joblib
+ASR_ACCENT_MODEL_PATH=/path/to/accent_svm_model.joblib
+ASR_ACCENT_SCALER_PATH=/path/to/accent_scaler.joblib
+ASR_ACCENT_ENCODER_PATH=/path/to/accent_label_encoder.joblib
+```
+
 ---
 
 ## Testing
